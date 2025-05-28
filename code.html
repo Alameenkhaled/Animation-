@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owen AI Disruption Engine</title>
+    <style>
+        :root {
+            --color-background: #0A101C; /* Deep dark blue */
+            --color-primary-cyan: #00FFFF; /* Owen AI Cyan */
+            --color-secondary-amber: #FFBF00; /* Amber/Gold for highlights */
+            --color-text-primary: #E6F1FF; /* Light, almost white */
+            --color-text-secondary: #A8B2D1; /* Lighter grey */
+            --color-panel-bg: rgba(18, 28, 48, 0.85); /* Semi-transparent dark blue */
+            --color-border: rgba(0, 255, 255, 0.3);
+            --font-primary: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        #ai-disruption-engine {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column; /* Changed to column for mobile friendliness, side by side on larger screens */
+            gap: 20px;
+            position: relative; /* For info panel positioning */
+        }
+
+        @media (min-width: 900px) {
+            #ai-disruption-engine {
+                flex-direction: row;
+            }
+        }
+        
+        .engine-header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--color-primary-cyan);
+        }
+        .engine-header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        .engine-header p {
+            font-size: 1rem;
+            color: var(--color-text-secondary);
+        }
+
+
+        .engine-visualization-area {
+            flex: 1.5; /* Takes more space */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px; /* Ensure space for SVG */
+            position: relative; /* For overlaying agent modules if needed */
+        }
+
+        #engine-svg {
+            width: 100%;
+            max-width: 500px; /* Max size of SVG */
+            height: auto;
+            overflow: visible; /* Important for glows */
+        }
+
+        /* SVG Core Styling */
+        .engine-core {
+            fill: rgba(0, 255, 255, 0.1); /* Faint cyan fill */
+            stroke: var(--color-primary-cyan);
+            stroke-width: 2;
+            filter: drop-shadow(0 0 10px var(--color-primary-cyan));
+            animation: pulseCore 4s infinite ease-in-out;
+        }
+
+        .engine-core-pattern line {
+            stroke: rgba(0, 255, 255, 0.3);
+            stroke-width: 0.5;
+        }
+
+        @keyframes pulseCore {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.03); opacity: 0.8; }
+        }
+
+        /* SVG Agent Node Styling */
+        .ai-agent-node {
+            fill: var(--color-background);
+            stroke: var(--color-secondary-amber);
+            stroke-width: 1.5;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 0 5px var(--color-secondary-amber));
+        }
+
+        .ai-agent-node:hover, .ai-agent-node.active {
+            fill: rgba(255, 191, 0, 0.2); /* Amber fill on hover/active */
+            stroke-width: 2.5;
+            filter: drop-shadow(0 0 15px var(--color-secondary-amber));
+            transform: scale(1.1);
+        }
+        .ai-agent-node.dimmed {
+            opacity: 0.4;
+            filter: none;
+        }
+
+        .agent-node-label {
+            fill: var(--color-text-secondary);
+            font-size: 10px;
+            font-family: var(--font-primary);
+            text-anchor: middle;
+            pointer-events: none; /* So click goes to circle */
+            transition: fill 0.3s ease;
+        }
+        .ai-agent-node:hover + .agent-node-label,
+        .ai-agent-node.active + .agent-node-label {
+            fill: var(--color-secondary-amber);
+            font-weight: bold;
+        }
+
+
+        /* SVG Connection Lines */
+        .engine-connection {
+            stroke: rgba(0, 255, 255, 0.3); /* Faint cyan */
+            stroke-width: 1;
+            stroke-dasharray: 5, 5; /* Dashed line */
+            animation: animateDash 20s linear infinite;
+        }
+        .engine-connection.active {
+            stroke: var(--color-primary-cyan);
+            stroke-width: 1.5;
+            stroke-dasharray: none;
+            animation: pulseConnection 1s infinite alternate;
+        }
+        
+        @keyframes animateDash {
+            to {
+                stroke-dashoffset: 100;
+            }
+        }
+        @keyframes pulseConnection {
+             from { opacity: 0.6; }
+             to { opacity: 1; }
+        }
+
+
+        /* Info Panel */
+        #engine-info-panel {
+            flex: 1; /* Takes available space */
+            background-color: var(--color-panel-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 25px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(20px) scale(0.95);
+            transition: opacity 0.5s ease-out, visibility 0.5s ease-out, transform 0.5s ease-out;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        #engine-info-panel.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0) scale(1);
+        }
+
+        #engine-info-panel h3 {
+            color: var(--color-primary-cyan);
+            margin-bottom: 20px;
+            font-size: 1.6em;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 10px;
+        }
+        
+        #engine-info-panel h4 {
+            color: var(--color-secondary-amber);
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        #engine-info-panel p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+            color: var(--color-text-secondary);
+            font-size: 0.95em;
+        }
+        
+        #engine-info-panel p strong {
+            color: var(--color-text-primary);
+        }
+
+        /* Dynamic Data Viz Placeholders */
+        .viz-section {
+            padding: 15px;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-bottom: 15px;
+            min-height: 80px; /* Give some space */
+        }
+        .viz-section .viz-description {
+            font-style: italic;
+            font-size: 0.9em;
+            color: var(--color-text-secondary);
+        }
+
+        #agent-data-input-viz .particle-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .particle {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--color-primary-cyan);
+            opacity: 0;
+            animation: flowParticle 1.5s ease-out forwards;
+        }
+        @keyframes flowParticle {
+            0% { opacity: 0; transform: translateX(-20px); }
+            50% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(20px); }
+        }
+
+        #agent-processing-viz .processing-bar-container {
+            width: 100%;
+            height: 10px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .processing-bar {
+            width: 0%;
+            height: 100%;
+            background-color: var(--color-secondary-amber);
+            border-radius: 5px;
+            animation: processBar 2s ease-in-out forwards; /* Changed to forwards */
+        }
+        @keyframes processBar {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        #agent-output-impact-viz #agent-output-metric {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--color-primary-cyan);
+            margin-top: 10px;
+        }
+        #agent-output-impact-viz .metric-value {
+            color: var(--color-secondary-amber);
+            font-size: 1.5em; /* Make the number bigger */
+        }
+        
+        /* Call to action when no agent is selected */
+        .cta-text {
+            font-size: 1.1em;
+            color: var(--color-secondary-amber);
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+    <header class="engine-header">
+        <h1>Owen AI Disruption Engine</h1>
+        <p>Explore the intelligent agents powering pre-market client care.</p>
+    </header>
+
+    <section id="ai-disruption-engine" aria-labelledby="engine-title-main">
+        <h2 id="engine-title-main" class="visually-hidden">Owen AI Disruption Engine</h2>
+
+        <div class="engine-visualization-area">
+            <svg id="engine-svg" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                <!-- Central Core -->
+                <circle class="engine-core" cx="150" cy="150" r="50"/>
+                <g class="engine-core-pattern">
+                    <!-- Simple rotating lines inside core for 'living' feel -->
+                    <line x1="150" y1="110" x2="150" y2="190" />
+                    <line x1="110" y1="150" x2="190" y2="150" />
+                    <line x1="120" y1="120" x2="180" y2="180" />
+                    <line x1="120" y1="180" x2="180" y2="120" />
+                </g>
+
+                <!-- Connections -->
+                <line id="conn-education" class="engine-connection" x1="150" y1="150" x2="150" y2="50"/>
+                <line id="conn-analysis" class="engine-connection" x1="150" y1="150" x2="238" y2="92"/>
+                <line id="conn-cultural" class="engine-connection" x1="150" y1="150" x2="238" y2="208"/>
+                <line id="conn-compliance" class="engine-connection" x1="150" y1="150" x2="62" y2="208"/>
+                <line id="conn-matching" class="engine-connection" x1="150" y1="150" x2="62" y2="92"/>
+
+                <!-- Agent Nodes & Labels (Positioned around the core) -->
+                <g id="agent-education-group" class="ai-agent-module" data-agent-name="Education">
+                    <circle class="ai-agent-node" cx="150" cy="50" r="20"/>
+                    <text class="agent-node-label" x="150" y="55">Edu</text>
+                </g>
+                <g id="agent-analysis-group" class="ai-agent-module" data-agent-name="Analysis">
+                    <circle class="ai-agent-node" cx="238" cy="92" r="20"/>
+                    <text class="agent-node-label" x="238" y="97">Analysis</text>
+                </g>
+                <g id="agent-cultural-group" class="ai-agent-module" data-agent-name="Cultural">
+                    <circle class="ai-agent-node" cx="238" cy="208" r="20"/>
+                    <text class="agent-node-label" x="238" y="213">Cultural</text>
+                </g>
+                <g id="agent-compliance-group" class="ai-agent-module" data-agent-name="Compliance">
+                    <circle class="ai-agent-node" cx="62" cy="208" r="20"/>
+                    <text class="agent-node-label" x="62" y="213">Compliance</text>
+                </g>
+                <g id="agent-matching-group" class="ai-agent-module" data-agent-name="Matching">
+                    <circle class="ai-agent-node" cx="62" cy="92" r="20"/>
+                    <text class="agent-node-label" x="62" y="97">Matching</text>
+                </g>
+            </svg>
+        </div>
+
+        <div id="engine-info-panel" class="info-panel" aria-live="polite">
+            <!-- Content will be dynamically inserted here by JavaScript -->
+            <p class="cta-text">Select an AI Agent to Explore its Impact.</p>
+        </div>
+    </section>
+
+    <script>
+        const agentData = {
+            "Education": {
+                title: "Education Agent",
+                problemSolved: "Tackles information asymmetry where 73% of international investors lack full understanding of local dynamics, costs, and regulations. This often leads to misguided decisions.",
+                capabilityText: "Constructs personalized learning paths, delivering tailored content on Dubai's market dynamics, investment principles, regulatory requirements, financial literacy, and cultural considerations. Provides real-time, customized market analysis.",
+                inputVizText: "Processing diverse financial queries, global market data streams, and complex regulatory documents.",
+                processingVizText: "Intelligent curriculum generation, knowledge structuring, and real-time comparative analysis.",
+                outputImpact: {
+                    text: "Empowers clients with comprehensive market understanding & financial literacy. Equips users to make informed decisions.",
+                    metricPrefix: "Reduces client decision uncertainty by ",
+                    metricValue: 75,
+                    metricSuffix: "%",
+                    visual: { type: "progress", value: 75, label: "Knowledge Level" }
+                }
+            },
+            "Cultural": {
+                title: "Cultural Agent",
+                problemSolved: "Addresses cultural disconnects causing negative experiences for 72% of international clients due to mismatched expectations and communication styles in a market with 200+ nationalities.",
+                capabilityText: "Utilizes a proprietary Cultural Intelligence Framework to adapt communication and guidance to resonate with a user's specific cultural background. Offers multilingual support and region-specific investment advice.",
+                inputVizText: "Analyzing user profiles (nationality, language), lifestyle preferences, and diverse communication styles.",
+                processingVizText: "Sophisticated cross-cultural mapping, nuance interpretation, and adaptive communication modeling.",
+                outputImpact: {
+                    text: "Results in: Culturally Aligned Communication & Reduced Relocation Friction. Significantly boosts client rapport and trust.",
+                    metricPrefix: "Improves cross-cultural understanding by ",
+                    metricValue: 85,
+                    metricSuffix: "%",
+                    visual: { type: "comparison", before: "Misaligned", after: "Aligned", icon: "🤝" }
+                }
+            },
+            "Compliance": {
+                title: "Compliance Agent",
+                problemSolved: "Navigates the complexities of evolving real estate regulations, DLD procedures, and visa eligibility rules, which can be significant hurdles for expatriates.",
+                capabilityText: "Provides clear, up-to-date information on relevant laws, essential documentation requirements, visa rules, and various compliance checks, mitigating risks of non-compliance.",
+                inputVizText: "Monitoring constant regulatory updates, legal document frameworks, and user-specific residency criteria.",
+                processingVizText: "Automated rule-based validation, document requirement analysis, and compliance pathway generation.",
+                outputImpact: {
+                    text: "Ensures clients are fully aware of legal obligations and documentation, mitigating transaction risks and delays.",
+                    metricPrefix: "Achieves ",
+                    metricValue: 99,
+                    metricSuffix: "% pre-transaction compliance readiness",
+                    visual: { type: "status", value: "Compliant", icon: "✔️" }
+                }
+            },
+            "Analysis": {
+                title: "Analysis Agent",
+                problemSolved: "Overcomes challenges in objective property and developer assessment, market valuation uncertainty, and risk identification in a dynamic market.",
+                capabilityText: "Processes vast amounts of market data to identify emerging trends, conduct property valuations (with up to 90% accuracy demonstrated by general AI tools), perform comprehensive risk assessments, and provide detailed developer/project analysis.",
+                inputVizText: "Integrating real-time market data feeds, extensive property listings, economic indicators, and developer track records.",
+                processingVizText: "Employing predictive modeling, AI-driven trend identification, sentiment analysis, and comparative market analysis.",
+                outputImpact: {
+                    text: "Delivers objective, data-driven insights, including opportunity scoring, for informed investment decisions.",
+                    metricPrefix: "Enhances investment decision confidence by ",
+                    metricValue: 90,
+                    metricSuffix: "%",
+                    visual: { type: "gauge", value: 90, label: "Valuation Accuracy" }
+                }
+            },
+            "Matching": {
+                title: "Matching Agent (Pre-Market to Market Bridge)",
+                problemSolved: "Efficiently connects genuinely transaction-ready clients with suitable, vetted real estate brokers or developers, avoiding wasted time for both parties.",
+                capabilityText: "Employs an AI-powered matching process based on a comprehensive analysis of the client's needs, preferences, preparedness level, and compatibility with partner specialization. Supports document preparation and compliance verification.",
+                inputVizText: "Assessing qualified client profiles, partner expertise databases, and real-time market availability.",
+                processingVizText: "Utilizing compatibility scoring algorithms, optimal pairing logic, and readiness verification protocols.",
+                outputImpact: {
+                    text: "Facilitates seamless and highly compatible client-partner connections, increasing the likelihood of successful transactions.",
+                    metricPrefix: "Boosts successful client-partner match rate by ",
+                    metricValue: 80,
+                    metricSuffix: "%",
+                    visual: { type: "flow", from: "Qualified Client", to: "Vetted Partner", icon: "🔗" }
+                }
+            }
+        };
+
+        const engineInfoPanel = document.getElementById('engine-info-panel');
+        const agentModules = document.querySelectorAll('.ai-agent-module');
+        const svgAgentNodes = document.querySelectorAll('.ai-agent-node');
+        const svgConnections = document.querySelectorAll('.engine-connection');
+
+        function resetAgentStates() {
+            svgAgentNodes.forEach(node => node.classList.remove('active', 'dimmed'));
+            svgConnections.forEach(conn => conn.classList.remove('active'));
+        }
+
+        function displayAgentInfo(agentName) {
+            const data = agentData[agentName];
+            if (!data) {
+                engineInfoPanel.innerHTML = '<p class="cta-text">Information not available for this agent.</p>';
+                return;
+            }
+
+            engineInfoPanel.innerHTML = `
+                <h3 id="agent-info-title">${data.title}</h3>
+
+                <h4>Data Inputs Handled:</h4>
+                <div id="agent-data-input-viz" class="viz-section">
+                    <p class="viz-description">${data.inputVizText}</p>
+                    <div class="particle-container">
+                        ${Array(5).fill(null).map((_, i) => `<div class="particle" style="animation-delay: ${i * 0.1}s;"></div>`).join('')}
+                    </div>
+                </div>
+
+                <h4>Intelligent Processing:</h4>
+                <div id="agent-processing-viz" class="viz-section">
+                    <p class="viz-description">${data.processingVizText}</p>
+                    <div class="processing-bar-container">
+                        <div class="processing-bar"></div>
+                    </div>
+                </div>
+
+                <h4>Transformative Output & Impact:</h4>
+                <div id="agent-output-impact-viz" class="viz-section">
+                    <p id="agent-output-text">${data.outputImpact.text}</p>
+                    <p id="agent-output-metric">
+                        <span class="metric-prefix">${data.outputImpact.metricPrefix}</span>
+                        <span class="metric-value" data-target-value="${data.outputImpact.metricValue}">0</span>
+                        <span class="metric-suffix">${data.outputImpact.metricSuffix}</span>
+                    </p>
+                </div>
+                
+                <h4>Core Capability:</h4>
+                <p id="agent-capability-text">${data.capabilityText}</p>
+
+                <h4>Problem Solved:</h4>
+                <p id="agent-problem-solved-text">${data.problemSolved}</p>
+            `;
+            
+            // Trigger count-up animation for metric
+            const metricValueElement = engineInfoPanel.querySelector('.metric-value');
+            if (metricValueElement) {
+                animateCountUp(metricValueElement);
+            }
+            // Re-trigger CSS animations for viz sections if needed
+            // This can be tricky; often easier to ensure animations run on element creation/class change.
+            // For simplicity, animations are set to run once when content is injected.
+            // To make them re-run on subsequent selections of the same agent, you'd need to remove/re-add elements or classes.
+        }
+        
+        function animateCountUp(element) {
+            const target = parseInt(element.dataset.targetValue, 10);
+            let current = 0;
+            const increment = target / 50; // Animate over 50 steps
+            const duration = 1000; // 1 second
+            const stepTime = duration / 50;
+
+            function updateCount() {
+                current += increment;
+                if (current >= target) {
+                    element.textContent = Math.round(target); // Ensure final value is exact
+                } else {
+                    element.textContent = Math.round(current);
+                    requestAnimationFrame(updateCount);
+                }
+            }
+            requestAnimationFrame(updateCount);
+        }
+
+
+        agentModules.forEach(module => {
+            module.addEventListener('click', () => {
+                const agentName = module.dataset.agentName;
+                
+                resetAgentStates();
+
+                // Highlight selected agent and its connection, dim others
+                module.querySelector('.ai-agent-node').classList.add('active');
+                const connectionId = `conn-${agentName.toLowerCase()}`;
+                const activeConnection = document.getElementById(connectionId);
+                if (activeConnection) {
+                    activeConnection.classList.add('active');
+                }
+
+                svgAgentNodes.forEach(node => {
+                    if (!node.classList.contains('active')) {
+                        node.classList.add('dimmed');
+                    }
+                });
+                
+                displayAgentInfo(agentName);
+                engineInfoPanel.classList.add('visible');
+            });
+        });
+
+        // Initial state for info panel
+        if (!engineInfoPanel.classList.contains('visible')) {
+             engineInfoPanel.innerHTML = '<p class="cta-text">Select an AI Agent on the left to Explore its Impact.</p>';
+        }
+
+    </script>
+</body>
+</html>
